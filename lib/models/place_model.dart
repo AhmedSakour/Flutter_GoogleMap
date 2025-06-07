@@ -14,7 +14,7 @@ List<PlaceModel> places = [
       id: '1',
       latLng: const LatLng(35.549508014886385, 35.76241935540856)),
   PlaceModel(
-      name: 'Manara University',
+      name: 'Al Qardahah',
       id: '2',
-      latLng: const LatLng(35.552361854330805, 35.768137926108))
+      latLng: const LatLng(35.460003293203016, 36.04731759569457))
 ];
