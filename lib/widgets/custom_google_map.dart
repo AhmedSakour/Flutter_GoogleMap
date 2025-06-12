@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:map_app/models/place_model.dart';
+import 'package:location_platform_interface/location_platform_interface.dart';
+import 'package:map_app/utils/location_services.dart';
 import 'package:map_app/utils/map_styles/map_styles.dart';
 
 class CustomGoogleMap extends StatefulWidget {
@@ -11,37 +12,83 @@ class CustomGoogleMap extends StatefulWidget {
 }
 
 class _CustomGoogleMapState extends State<CustomGoogleMap> {
-  late GoogleMapController controllerMap;
+  GoogleMapController? controllerMap;
+  late LocationServices locationServices;
+  bool isFirstCall = true;
   @override
   void initState() {
-    initMarkers();
+    // initMarkers();
     initPolyines();
     initPolygons();
     initCircles();
+    locationServices = LocationServices();
+
+    initMyLocation();
     super.initState();
+  }
+
+  void initMyLocation() async {
+    await locationServices.checkAndRequestLocationService();
+    bool hasPermission =
+        await locationServices.checkAndRequestLocationPermission();
+    if (hasPermission) {
+      locationServices.getLocationData(
+        (locationData) {
+          setMyLocation(locationData);
+          setMyLocationMarker(locationData);
+        },
+      );
+    } else {
+      debugPrint('error');
+    }
+  }
+
+  void setMyLocation(LocationData locationData) {
+    if (!isFirstCall) {
+      controllerMap?.animateCamera(CameraUpdate.newLatLng(
+          LatLng(locationData.latitude!, locationData.longitude!)));
+    } else {
+      CameraPosition cameraPosition = CameraPosition(
+          target: LatLng(
+            locationData.latitude!,
+            locationData.longitude!,
+          ),
+          zoom: 3);
+      controllerMap
+          ?.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+      isFirstCall = false;
+    }
+  }
+
+  void setMyLocationMarker(LocationData locationData) {
+    Marker markerMylocation = Marker(
+        markerId: const MarkerId('77'),
+        position: LatLng(locationData.latitude!, locationData.longitude!));
+    markers.add(markerMylocation);
+    setState(() {});
   }
 
   @override
   void dispose() {
-    controllerMap.dispose();
+    controllerMap?.dispose();
     super.dispose();
   }
 
-  initMarkers() async {
-    var customMarkerIcon = await BitmapDescriptor.asset(
-        const ImageConfiguration(), 'assest/images/location_icon.png');
-    var markerPlaces = places
-        .map(
-          (placeModel) => Marker(
-              icon: customMarkerIcon,
-              infoWindow: InfoWindow(title: placeModel.name),
-              markerId: MarkerId(placeModel.id),
-              position: placeModel.latLng),
-        )
-        .toSet();
-    markers.addAll(markerPlaces);
-    setState(() {});
-  }
+  // initMarkers() async {
+  //   var customMarkerIcon = await BitmapDescriptor.asset(
+  //       const ImageConfiguration(), 'assest/images/location_icon.png');
+  //   var markerPlaces = places
+  //       .map(
+  //         (placeModel) => Marker(
+  //             icon: customMarkerIcon,
+  //             infoWindow: InfoWindow(title: placeModel.name),
+  //             markerId: MarkerId(placeModel.id),
+  //             position: placeModel.latLng),
+  //       )
+  //       .toSet();
+  //   markers.addAll(markerPlaces);
+  //   setState(() {});
+  // }
 
   void initPolyines() {
     Polyline polyline1 = const Polyline(
@@ -141,7 +188,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
             width: 250,
             child: ElevatedButton(
               onPressed: () {
-                controllerMap.animateCamera(CameraUpdate.newLatLng(
+                controllerMap?.animateCamera(CameraUpdate.newLatLng(
                   const LatLng(33.51517710518676, 36.28563778621559),
                 ));
               },
